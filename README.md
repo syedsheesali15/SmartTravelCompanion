@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Smart Travel Companion
 
 Flutter advanced assignment app: **JSONPlaceholder photos** as “places”, **Open-Meteo** weather, **SQLite** offline cache, **Provider** state, **GoRouter** navigation, and UI guided by `assignment_ui.png`.
@@ -39,3 +40,7 @@ Presentation imports **domain**, not concrete `data` classes. Dependencies are w
 ## PythonAnywhere / Flutter Web reminder
 
 **`sqflite` does not compile for Flutter Web.** Ship the graded **Android APK**. Optional: host a **`flutter build web`** artifact as static files on PythonAnywhere and document that persistence differs from Android.
+=======
+# SmartTravelCompanion
+Smart Travel Application for Flutter Project
+>>>>>>> 587abbc8c11cbd5749fdd2b77c5bbd4f5935c458

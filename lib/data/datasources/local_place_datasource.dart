@@ -59,21 +59,18 @@ class LocalPlaceDataSource {
   PlaceEntity _fromRow(Map<String, Object?> row) {
     final id = row['id']! as int;
     final albumId = row['album_id']! as int;
-    final photos = curatedSpotPhotos(albumId: albumId, photoId: id);
-    return PlaceEntity(
+    var latin = curatorSnippetFromStoredAbout(row['about_text'] as String?);
+    if (latin.isEmpty) {
+      latin =
+          '${row['title'] ?? 'place'} (${row['location_line'] ?? ''}) excerpt.';
+    }
+
+    return catalogPlaceEntityFromAlbumPhoto(
       id: id,
       albumId: albumId,
-      title: row['title']! as String,
-      fullImageUrl: photos.fullImageUrl,
-      thumbnailUrl: photos.thumbnailUrl,
-      locationLine: row['location_line']! as String,
-      aboutText: row['about_text']! as String,
-      regionBucket: row['region_bucket']! as String,
+      latinCuratorSnippet: latin,
       isFavorite: (row['is_favorite'] as int) == 1,
       lastViewedMs: row['viewed_at'] as int?,
-      worldLatitude: null,
-      worldLongitude: null,
-      worldGeocodeSeedId: 0,
     );
   }
 

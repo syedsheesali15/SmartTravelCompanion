@@ -1,388 +1,284 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/router/app_route_paths.dart';
 
-/// Welcome / landing — tweak spacing & copy against your Figma reference.
-/// Figma ref: Smart Travel Companion (Make file).
-class LandingScreen extends StatelessWidget {
+import '../widgets/app_brand_icon.dart';
+
+/// Welcome / onboarding — dark hero with core features list (full-screen / edge-to-edge).
+class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
 
   static const routePath = AppRoutePaths.landing;
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bottomBg = isDark ? AppColors.darkSurface : Colors.white;
+  static const _accentPurple = Color(0xFFB8A9FF);
+  static const _featureIconBg = Color(0xFF1E293B);
+  static const _gradientBottom = Color(0xFF020617);
 
-    return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : AppColors.lightBackground,
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Expanded(
-                flex: 12,
-                child: DecoratedBox(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color(0xFF5B52F5),
-                        Color(0xFF8B84FF),
-                        Color(0xFFABA4FF),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          IconButton.filled(
-                            style: IconButton.styleFrom(
-                              backgroundColor: Colors.white24,
-                            ),
-                            onPressed: () => context.go(AppRoutePaths.home),
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Smart Travel Companion',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.15,
-                                ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Explore curated places, live weather,\nand maps — built for travellers who '
-                            'love a polished, modern companion.',
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(
-                                  color: Colors.white.withValues(alpha: .92),
-                                  height: 1.45,
-                                ),
-                          ),
-                          const SizedBox(height: 28),
-                          const Expanded(child: _HeroCollage()),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 11,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(color: bottomBg),
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        24,
-                        28,
-                        24,
-                        140 + MediaQuery.paddingOf(context).bottom,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'Everything in one trip',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF0F172A),
-                                ),
-                          ),
-                          const SizedBox(height: 22),
-                          _FeatureTile(
-                            icon: Icons.photo_library_outlined,
-                            title: 'Places from JSONPlaceholder',
-                            subtitle:
-                                'Curated titles & imagery synced to SQLite for smooth Explore.',
-                          ),
-                          const SizedBox(height: 14),
-                          _FeatureTile(
-                            icon: Icons.wb_sunny_outlined,
-                            title: 'Open-Meteo weather',
-                            subtitle:
-                                'Live-feel forecasts on each detail screen.',
-                          ),
-                          const SizedBox(height: 14),
-                          _FeatureTile(
-                            icon: Icons.map_outlined,
-                            title: 'Maps where supported',
-                            subtitle:
-                                'Google Maps on mobile & web with keys · OSM elsewhere.',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: MediaQuery.paddingOf(context).bottom + 16,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 2,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                  ),
-                  onPressed: () => context.go(AppRoutePaths.home),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Explore places',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.arrow_forward_rounded, size: 20),
-                    ],
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => context.go(AppRoutePaths.home),
-                  child: Text(
-                    'Skip introduction',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white70 : AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  @override
+  State<LandingScreen> createState() => _LandingScreenState();
 }
 
-class _HeroCollage extends StatelessWidget {
-  const _HeroCollage();
+class _LandingScreenState extends State<LandingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      SystemChrome.setSystemUIOverlayStyle(_kLandingOverlayStyle);
+    });
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle());
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned.fill(
-          child: Align(
-            alignment: Alignment.center,
-            child: Transform.rotate(
-              angle: -0.09,
-              child: _FakeCard(
-                width: 168,
-                hue: Colors.white.withValues(alpha: .18),
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _kLandingOverlayStyle,
+      child: Scaffold(
+        backgroundColor: LandingScreen._gradientBottom,
+        resizeToAvoidBottomInset: false,
+        body: SizedBox.expand(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF0F172A),
+                  LandingScreen._gradientBottom,
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
             ),
-          ),
-        ),
-        Positioned.fill(
-          child: Align(
-            alignment: const Alignment(0.2, -0.2),
-            child: Transform.rotate(
-              angle: 0.1,
-              child: _FakeCard(
-                width: 152,
-                hue: Colors.white.withValues(alpha: .28),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                SafeArea(
+                  bottom: false,
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      24,
+                      8,
+                      24,
+                      120 + bottomInset,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        onPressed: () => context.go(AppRoutePaths.home),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: .08),
+                          foregroundColor: Colors.white,
+                        ),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const AppBrandIcon(),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.15,
+                                    color: Colors.white,
+                                  ),
+                              children: [
+                                const TextSpan(text: 'Smart '),
+                                TextSpan(
+                                  text: 'Travel',
+                                  style: TextStyle(
+                                    color: LandingScreen._accentPurple,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const TextSpan(text: ' Companion'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Your ultimate travel guide to explore beautiful places, '
+                      'check real-time weather and manage your favorites.',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.white.withValues(alpha: .88),
+                            height: 1.5,
+                          ),
+                    ),
+                    const SizedBox(height: 22),
+                    Divider(
+                      color: Colors.white.withValues(alpha: .14),
+                      height: 1,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'CORE FEATURES',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                            color: LandingScreen._accentPurple,
+                          ),
+                    ),
+                    const SizedBox(height: 18),
+                    const _CoreFeatureRow(
+                      icon: Icons.location_on_rounded,
+                      label: 'Explore beautiful places',
+                      iconColor: AppColors.primary,
+                    ),
+                    const SizedBox(height: 14),
+                    const _CoreFeatureRow(
+                      icon: Icons.wb_cloudy_rounded,
+                      label: 'Real-time weather updates',
+                      iconColor: Color(0xFF93C5FD),
+                    ),
+                    const SizedBox(height: 14),
+                    const _CoreFeatureRow(
+                      icon: Icons.search_rounded,
+                      label: 'Search & filter places',
+                      iconColor: AppColors.primary,
+                    ),
+                    const SizedBox(height: 14),
+                    const _CoreFeatureRow(
+                      icon: Icons.favorite_rounded,
+                      label: 'Save your favorite places',
+                      iconColor: AppColors.accentHeart,
+                    ),
+                    const SizedBox(height: 14),
+                    const _CoreFeatureRow(
+                      icon: Icons.download_for_offline_rounded,
+                      label: 'Offline support & caching',
+                      iconColor: Color(0xFF94A3B8),
+                    ),
+                    const SizedBox(height: 14),
+                    const _CoreFeatureRow(
+                      icon: Icons.auto_awesome_rounded,
+                      label: 'Smooth animations & transitions',
+                      iconColor: Color(0xFFFBBF24),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
-        Align(
-          alignment: Alignment.center,
-          child: Transform.rotate(
-            angle: math.pi / 36,
-            child: Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .95),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: .15),
-                    blurRadius: 24,
-                    offset: const Offset(0, 14),
+            Positioned(
+              left: 24,
+              right: 24,
+              bottom: bottomInset + 16,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                    onPressed: () => context.go(AppRoutePaths.home),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Explore places',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
+                              ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward_rounded, size: 20),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.flight_takeoff_rounded,
-                size: 44,
-                color: AppColors.primary,
-              ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
+      ),
+    ),
     );
   }
 }
 
-class _FakeCard extends StatelessWidget {
-  const _FakeCard({required this.width, required this.hue});
+const SystemUiOverlayStyle _kLandingOverlayStyle = SystemUiOverlayStyle(
+  statusBarColor: Colors.transparent,
+  statusBarIconBrightness: Brightness.light,
+  statusBarBrightness: Brightness.dark,
+  systemNavigationBarColor: Color(0xFF020617),
+  systemNavigationBarIconBrightness: Brightness.light,
+  systemNavigationBarDividerColor: Colors.transparent,
+  systemNavigationBarContrastEnforced: false,
+);
 
-  final double width;
-  final Color hue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: width * 0.62,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: hue,
-        border: Border.all(color: Colors.white.withValues(alpha: .35)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .12),
-            blurRadius: 22,
-            offset: const Offset(0, 14),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 14,
-            left: 14,
-            right: 14,
-            child: Container(
-              height: 10,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
-                color: Colors.white.withValues(alpha: .4),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 32,
-            left: 14,
-            width: width * .35,
-            child: Container(
-              height: 8,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
-                color: Colors.white.withValues(alpha: .25),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FeatureTile extends StatelessWidget {
-  const _FeatureTile({
+class _CoreFeatureRow extends StatelessWidget {
+  const _CoreFeatureRow({
     required this.icon,
-    required this.title,
-    required this.subtitle,
+    required this.label,
+    required this.iconColor,
   });
 
   final IconData icon;
-  final String title;
-  final String subtitle;
+  final String label;
+  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkBackground.withValues(alpha: .9)
-            : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark
-              ? Colors.white12
-              : AppColors.primary.withValues(alpha: .08),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: LandingScreen._featureIconBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: .06),
+            ),
+          ),
+          child: Icon(icon, color: iconColor, size: 22),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: .06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: .94),
+                  height: 1.25,
                 ),
-              ],
-            ),
-            child: Icon(icon, color: AppColors.primary.withValues(alpha: .9)),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

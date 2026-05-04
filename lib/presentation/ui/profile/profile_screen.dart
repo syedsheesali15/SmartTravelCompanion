@@ -111,7 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Align(
               child: TextButton(
                 onPressed: () async {
-                  await profile.clearLocalAvatarAndUseNetwork();
+                  await profile.resetAvatarToDefault();
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

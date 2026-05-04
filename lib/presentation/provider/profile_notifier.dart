@@ -8,17 +8,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _kName = 'stc_profile_display_name';
 const _kEmail = 'stc_profile_email';
-const _kAvatarUrl = 'stc_profile_avatar_url';
 const _kAvatarFile = 'stc_profile_avatar_file';
+/// Previously stored bundled network avatar; no longer read.
+const _kLegacyAvatarUrl = 'stc_profile_avatar_url';
 
 final class ProfileNotifier extends ChangeNotifier {
   static const defaultName = 'Aarav Mehta';
   static const defaultEmail = 'aarav.explorer@example.com';
-  static const defaultAvatarNetwork = 'https://i.pravatar.cc/200?img=12';
+
+  /// Built-in placeholder when the user has not chosen a gallery photo.
+  static const defaultAvatarAsset = 'assets/images/profile_default_avatar.png';
 
   String _displayName = defaultName;
   String _email = defaultEmail;
-  String _avatarNetworkUrl = defaultAvatarNetwork;
 
   /// Saved copy under app documents when user picks a gallery photo.
   String? _avatarFilePath;
@@ -34,18 +36,18 @@ final class ProfileNotifier extends ChangeNotifier {
         return FileImage(file);
       }
     }
-    return NetworkImage(_avatarNetworkUrl);
+    return const AssetImage(defaultAvatarAsset);
   }
 
   Future<void> loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
+    if (prefs.containsKey(_kLegacyAvatarUrl)) {
+      await prefs.remove(_kLegacyAvatarUrl);
+    }
     final name = prefs.getString(_kName)?.trim();
     final mail = prefs.getString(_kEmail)?.trim();
-    final net = prefs.getString(_kAvatarUrl)?.trim();
     _displayName = name == null || name.isEmpty ? defaultName : name;
     _email = mail == null || mail.isEmpty ? defaultEmail : mail;
-    _avatarNetworkUrl =
-        net == null || net.isEmpty ? defaultAvatarNetwork : net;
     _avatarFilePath = prefs.getString(_kAvatarFile);
     notifyListeners();
   }
@@ -77,7 +79,8 @@ final class ProfileNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> clearLocalAvatarAndUseNetwork() async {
+  /// Removes a gallery-saved photo and shows the built-in default avatar.
+  Future<void> resetAvatarToDefault() async {
     if (_avatarFilePath != null && !kIsWeb) {
       try {
         final f = File(_avatarFilePath!);
@@ -87,8 +90,6 @@ final class ProfileNotifier extends ChangeNotifier {
     _avatarFilePath = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kAvatarFile);
-    _avatarNetworkUrl = defaultAvatarNetwork;
-    await prefs.setString(_kAvatarUrl, defaultAvatarNetwork);
     notifyListeners();
   }
 }

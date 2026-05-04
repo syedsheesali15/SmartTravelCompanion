@@ -209,10 +209,11 @@ class PlacesNotifier extends ChangeNotifier {
     });
   }
 
-  Future<void> setChip(HomeChip chip) async {
+  Future<void> setChip(HomeChip chip, {bool clearSearch = false}) async {
+    if (clearSearch) _debounce?.cancel();
     _filters = PlaceQuery(
       chip: chip,
-      search: _filters.search,
+      search: clearSearch ? '' : _filters.search,
       sort: _filters.sort,
       region: _filters.region,
       showFavoritesOnly: _filters.showFavoritesOnly,

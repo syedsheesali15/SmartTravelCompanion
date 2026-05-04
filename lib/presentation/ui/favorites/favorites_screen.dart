@@ -17,7 +17,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PlacesNotifier>().setChip(HomeChip.favorites);
+      context.read<PlacesNotifier>().setChip(
+            HomeChip.favorites,
+            clearSearch: true,
+          );
     });
   }
 

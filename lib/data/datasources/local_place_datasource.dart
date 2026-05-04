@@ -79,28 +79,19 @@ class LocalPlaceDataSource {
     final args = <Object?>[];
 
     final searchNeedle = _safeSearchNeedle(query.search);
-    // While searching, chip filters (Favorites/Recent) are ignored so queries match catalog-wide.
-    final filterByChip = searchNeedle == null;
+    final favoritesFilter =
+        query.chip == HomeChip.favorites || query.showFavoritesOnly;
+    final recentFilter = query.chip == HomeChip.recent;
 
-    if (filterByChip) {
-      switch (query.chip) {
-        case HomeChip.favorites:
-          buffer.write(' AND is_favorite = 1');
-          break;
-        case HomeChip.recent:
-          buffer.write(' AND viewed_at IS NOT NULL');
-          break;
-        case HomeChip.all:
-          break;
-      }
+    if (favoritesFilter) {
+      buffer.write(' AND is_favorite = 1');
+    } else if (recentFilter) {
+      buffer.write(' AND viewed_at IS NOT NULL');
     }
 
     if (query.region != 'All') {
       buffer.write(' AND region_bucket = ?');
       args.add(query.region);
-    }
-    if (query.showFavoritesOnly) {
-      buffer.write(' AND is_favorite = 1');
     }
 
     if (searchNeedle != null) {
@@ -125,7 +116,10 @@ class LocalPlaceDataSource {
       PlaceSort.idAsc => 'id ASC',
     };
 
-    final trailing = filterByChip && query.chip == HomeChip.recent
+    final needsRecentRecencyOrder =
+        recentFilter && searchNeedle == null;
+
+    final trailing = needsRecentRecencyOrder
         ? 'viewed_at DESC, id ASC'
         : orderClause;
 
@@ -142,16 +136,22 @@ class LocalPlaceDataSource {
     }
 
     if (searchNeedle != null) {
-      final geo = await _fetchWorldPlacesMatchingSearch(searchNeedle);
+      late final List<PlaceEntity> geo;
+      if (favoritesFilter) {
+        geo =
+            await _fetchWorldFavoritePlacesMatchingSearch(searchNeedle);
+      } else if (recentFilter) {
+        geo = await _fetchWorldRecentPlacesMatchingSearch(searchNeedle);
+      } else {
+        geo = await _fetchWorldPlacesMatchingSearch(searchNeedle);
+      }
       final merged = [...catalog, ...geo];
       _sortCombinedExplore(merged, query.sort);
       return merged;
     }
 
-    final wantsRecentMerged = filterByChip && query.chip == HomeChip.recent;
-    final wantsFavoritesMerged =
-        (filterByChip && query.chip == HomeChip.favorites) ||
-        query.showFavoritesOnly;
+    final wantsRecentMerged = recentFilter && searchNeedle == null;
+    final wantsFavoritesMerged = favoritesFilter && searchNeedle == null;
 
     if (wantsRecentMerged) {
       final geo = await _fetchWorldRecentPlaces();
@@ -267,6 +267,36 @@ class LocalPlaceDataSource {
       where: 'LOWER(title) LIKE ? OR LOWER(subtitle) LIKE ?',
       whereArgs: [like, like],
       orderBy: 'updated_at DESC',
+    );
+    return rows.map(_worldRowToEntity).toList();
+  }
+
+  Future<List<PlaceEntity>> _fetchWorldFavoritePlacesMatchingSearch(
+    String needleLowercase,
+  ) async {
+    final db = await _database.database;
+    final like = '%$needleLowercase%';
+    final rows = await db.query(
+      'user_world_places',
+      where:
+          'is_favorite = 1 AND (LOWER(title) LIKE ? OR LOWER(subtitle) LIKE ?)',
+      whereArgs: [like, like],
+      orderBy: 'updated_at DESC',
+    );
+    return rows.map(_worldRowToEntity).toList();
+  }
+
+  Future<List<PlaceEntity>> _fetchWorldRecentPlacesMatchingSearch(
+    String needleLowercase,
+  ) async {
+    final db = await _database.database;
+    final like = '%$needleLowercase%';
+    final rows = await db.query(
+      'user_world_places',
+      where:
+          'viewed_at IS NOT NULL AND (LOWER(title) LIKE ? OR LOWER(subtitle) LIKE ?)',
+      whereArgs: [like, like],
+      orderBy: 'viewed_at DESC',
     );
     return rows.map(_worldRowToEntity).toList();
   }

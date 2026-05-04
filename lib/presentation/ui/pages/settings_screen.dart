@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/constants/maps_secrets.dart';
 import '../../../core/router/app_route_paths.dart';
 import '../../provider/places_notifier.dart';
@@ -71,6 +72,36 @@ class SettingsScreen extends StatelessWidget {
             subtitle: const Text('Cache size and refresh'),
             onTap: () => context.push(AppRoutePaths.downloads),
           ),
+          const Divider(height: 1),
+          _sectionTitle(context, 'Notifications'),
+          if (kIsWeb)
+            const ListTile(
+              leading: Icon(Icons.notifications_off_outlined),
+              title: Text('Push-style tray alerts'),
+              subtitle: Text(
+                'Local notifications run on Android / iOS builds only.',
+              ),
+            )
+          else
+            ListTile(
+              leading:
+                  Icon(Icons.notifications_active_outlined, color: AppColors.primary),
+              title: const Text('Send sample travel alerts'),
+              subtitle: const Text(
+                'Fires two test notifications — use if alerts were silent.',
+              ),
+              onTap: () async {
+                await NotificationService.instance.showSampleTrayNotifications();
+                if (!context.mounted) return;
+                ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Sample notifications queued — allow alerts if prompted.',
+                    ),
+                  ),
+                );
+              },
+            ),
           const Divider(height: 1),
           _sectionTitle(context, 'Data'),
           ListTile(

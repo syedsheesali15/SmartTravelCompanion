@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/router/app_route_paths.dart';
 import '../../../core/router/app_router.dart';
 import '../../provider/profile_notifier.dart';
@@ -116,6 +119,9 @@ class AppDrawer extends StatelessWidget {
                 }),
                 _tile(context, Icons.map_outlined, 'Map', () {
                   navigateFromDrawer(context, (r) => r.go(AppRoutePaths.map));
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    unawaited(NotificationService.instance.browseMapReminder());
+                  });
                 }),
                 _tile(context, Icons.favorite_outline, 'Favorites', () {
                   navigateFromDrawer(

@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 
+import '../../core/geo/place_stock_photos.dart';
 import '../../domain/entities/place_entity.dart';
 import '../../domain/entities/place_query.dart';
 import '../models/photo_dto.dart';
@@ -57,18 +58,23 @@ class LocalPlaceDataSource {
         'viewed_at': e.lastViewedMs,
       };
 
-  PlaceEntity _fromRow(Map<String, Object?> row) => PlaceEntity(
-        id: row['id']! as int,
-        albumId: row['album_id']! as int,
-        title: row['title']! as String,
-        fullImageUrl: row['url']! as String,
-        thumbnailUrl: row['thumbnail_url']! as String,
-        locationLine: row['location_line']! as String,
-        aboutText: row['about_text']! as String,
-        regionBucket: row['region_bucket']! as String,
-        isFavorite: (row['is_favorite'] as int) == 1,
-        lastViewedMs: row['viewed_at'] as int?,
-      );
+  PlaceEntity _fromRow(Map<String, Object?> row) {
+    final id = row['id']! as int;
+    final albumId = row['album_id']! as int;
+    final photos = curatedSpotPhotos(albumId: albumId, photoId: id);
+    return PlaceEntity(
+      id: id,
+      albumId: albumId,
+      title: row['title']! as String,
+      fullImageUrl: photos.fullImageUrl,
+      thumbnailUrl: photos.thumbnailUrl,
+      locationLine: row['location_line']! as String,
+      aboutText: row['about_text']! as String,
+      regionBucket: row['region_bucket']! as String,
+      isFavorite: (row['is_favorite'] as int) == 1,
+      lastViewedMs: row['viewed_at'] as int?,
+    );
+  }
 
   Future<List<PlaceEntity>> fetchMatching(PlaceQuery query) async {
     final buffer = StringBuffer('1 = 1');

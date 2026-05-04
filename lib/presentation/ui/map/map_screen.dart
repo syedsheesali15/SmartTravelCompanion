@@ -120,7 +120,7 @@ class MapScreen extends StatelessWidget {
                               child: Text(
                                 MapsCapabilities.sdkRunsGoogleMaps
                                     ? kIsWeb
-                                        ? 'OpenStreetMap — add dart-define GOOGLE_MAPS_API_KEY plus the Maps JS script key in web/index.html to use Google.'
+                                        ? 'OpenStreetMap — run with --dart-define=GOOGLE_MAPS_API_KEY=YOUR_KEY (Maps JavaScript API enabled in Google Cloud) to use Google Maps.'
                                         : 'OpenStreetMap on this platform.'
                                     : 'OpenStreetMap — Google Maps runs on Android, iOS, and web once keys & SDK prerequisites are configured.',
                                 style: Theme.of(context).textTheme.bodySmall,

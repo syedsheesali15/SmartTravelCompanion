@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'core/database/sqlite_factory.dart';
+import 'core/maps/load_google_maps_script.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
@@ -19,6 +20,7 @@ import 'presentation/provider/theme_notifier.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await loadGoogleMapsScriptIfConfigured();
   configureSqliteFactory();
   await NotificationService.instance.initialize();
 

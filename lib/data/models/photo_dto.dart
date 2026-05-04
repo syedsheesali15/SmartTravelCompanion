@@ -1,5 +1,6 @@
-import '../../domain/entities/place_entity.dart';
 import '../../core/geo/fake_location.dart';
+import '../../core/geo/place_stock_photos.dart';
+import '../../domain/entities/place_entity.dart';
 
 class PhotoDto {
   PhotoDto({
@@ -34,6 +35,7 @@ class PhotoDto {
     required int? lastViewedMs,
   }) {
     final loc = syntheticTravelSpot(albumId: albumId, photoId: id);
+    final photos = curatedSpotPhotos(albumId: albumId, photoId: id);
     final commaParts =
         loc.titleLine.split(',').map((segment) => segment.trim()).where((s) => s.isNotEmpty).toList();
     final displayTitle =
@@ -47,8 +49,8 @@ class PhotoDto {
       id: id,
       albumId: albumId,
       title: displayTitle,
-      fullImageUrl: url,
-      thumbnailUrl: thumbnailUrl,
+      fullImageUrl: photos.fullImageUrl,
+      thumbnailUrl: photos.thumbnailUrl,
       locationLine: loc.titleLine,
       aboutText: about,
       regionBucket: loc.regionBucket,

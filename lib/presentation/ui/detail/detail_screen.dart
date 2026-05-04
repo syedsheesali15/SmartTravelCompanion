@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/geo/coords_for_place.dart';
+import '../../../core/router/app_navigation.dart';
+import '../../../data/datasources/geocoding_remote_datasource.dart';
+import '../../../domain/entities/place_entity.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../domain/entities/weather_entity.dart';
 import '../../../domain/repositories/place_repository.dart';
@@ -12,18 +14,25 @@ import '../../provider/connectivity_notifier.dart';
 import '../../provider/place_detail_notifier.dart';
 
 class DetailScreen extends StatelessWidget {
-  const DetailScreen({super.key, required this.placeId});
+  const DetailScreen({
+    super.key,
+    required this.placeId,
+    this.initialPlace,
+  });
 
   final int placeId;
+  final PlaceEntity? initialPlace;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (ctx) => PlaceDetailNotifier(
         placeId: placeId,
+        initialPlace: initialPlace,
         places: ctx.read<PlaceRepository>(),
         weather: ctx.read<WeatherRepository>(),
         connectivity: ctx.read<ConnectivityNotifier>(),
+        geocoding: ctx.read<GeocodingRemoteDataSource>(),
       ),
       child: const _DetailView(),
     );
@@ -45,7 +54,7 @@ class _DetailView extends StatelessWidget {
       );
     }
 
-    final coord = latLngForPlaceId(place.id);
+    final coord = notifier.mapCoord;
 
     return Scaffold(
       body: CustomScrollView(
@@ -80,101 +89,158 @@ class _DetailView extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
             sliver: SliverList(
-              delegate: SliverChildListDelegate(
-                [
-                  Text(
-                    place.title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+              delegate: SliverChildListDelegate([
+                Text(
+                  place.title,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(height: 10),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.place_outlined,
+                      size: 20,
+                      color: AppColors.primary.withValues(alpha: .85),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        place.locationLine,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (notifier.distanceKm != null) ...[
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.place_outlined, size: 20, color: AppColors.primary.withValues(alpha: .85)),
+                      Icon(
+                        Icons.near_me_outlined,
+                        size: 18,
+                        color: AppColors.primary.withValues(alpha: .9),
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          place.locationLine,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w500,
+                          '~${notifier.distanceKm!.round()} km from your location',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
                               ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                ] else if (notifier.distancePermissionDenied) ...[
+                  const SizedBox(height: 8),
                   Text(
-                    place.aboutText,
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45),
-                  ),
-                  const SizedBox(height: 22),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Current weather', style: Theme.of(context).textTheme.titleMedium),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withValues(alpha: .92),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.flash_on_rounded, size: 15, color: Colors.white.withValues(alpha: .95)),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Live',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.2,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 320),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    child: _WeatherPanel(
-                      key: ValueKey(notifier.weatherPhase),
-                      phase: notifier.weatherPhase,
-                      snapshot: notifier.weather,
-                      error: notifier.weatherError,
-                      onRetry: notifier.retryWeather,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  GestureDetector(
-                    onTap: notifier.toggleAbout,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('About the place', style: Theme.of(context).textTheme.titleMedium),
-                        Icon(notifier.aboutExpanded ? Icons.expand_less : Icons.expand_more),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    alignment: Alignment.topCenter,
-                    clipBehavior: Clip.hardEdge,
-                    child: Text(
-                      place.aboutText,
-                      maxLines: notifier.aboutExpanded ? null : 3,
-                      overflow: notifier.aboutExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                    'Allow location access in settings to see distance from you.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
-              ),
+                const SizedBox(height: 16),
+                Text(
+                  place.aboutText,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(height: 1.45),
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Current weather',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: .92),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.flash_on_rounded,
+                            size: 15,
+                            color: Colors.white.withValues(alpha: .95),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Live',
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.2,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 320),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: _WeatherPanel(
+                    key: ValueKey(notifier.weatherPhase),
+                    phase: notifier.weatherPhase,
+                    snapshot: notifier.weather,
+                    error: notifier.weatherError,
+                    onRetry: notifier.retryWeather,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                GestureDetector(
+                  onTap: notifier.toggleAbout,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'About the place',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Icon(
+                        notifier.aboutExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  alignment: Alignment.topCenter,
+                  clipBehavior: Clip.hardEdge,
+                  child: Text(
+                    place.aboutText,
+                    maxLines: notifier.aboutExpanded ? null : 3,
+                    overflow: notifier.aboutExpanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
+                  ),
+                ),
+              ]),
             ),
           ),
         ],
@@ -188,11 +254,10 @@ class _DetailView extends StatelessWidget {
             minimumSize: const Size.fromHeight(52),
           ),
           onPressed: () {
-            context.push(
-              '/map/target'
-              '?lat=${coord.latitude}'
-              '&lng=${coord.longitude}'
-              '&title=${Uri.encodeComponent(place.title)}',
+            context.pushMapTarget(
+              lat: coord.latitude,
+              lng: coord.longitude,
+              title: place.title,
             );
           },
           icon: const Icon(Icons.map_rounded),
@@ -241,7 +306,9 @@ class _WeatherPanel extends StatelessWidget {
         }
         return Card(
           clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -258,13 +325,19 @@ class _WeatherPanel extends StatelessWidget {
                             '${w.temperatureC.toStringAsFixed(1)} °C',
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
-                          Text(w.conditionLabel, style: Theme.of(context).textTheme.titleMedium),
+                          Text(
+                            w.conditionLabel,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
                         ],
                       ),
                     ),
                     CircleAvatar(
                       backgroundColor: AppColors.warning.withValues(alpha: .2),
-                      child: Icon(Icons.wb_sunny_rounded, color: AppColors.warning.withValues(alpha: .95)),
+                      child: Icon(
+                        Icons.wb_sunny_rounded,
+                        color: AppColors.warning.withValues(alpha: .95),
+                      ),
                     ),
                   ],
                 ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:latlong2/latlong.dart' show LatLng;
 
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/geo/coords_for_place.dart';
 import '../../../../domain/entities/place_entity.dart';
 
@@ -15,6 +16,11 @@ class GoogleMapsBody extends StatefulWidget {
     required this.singleLat,
     required this.singleLng,
     required this.markerTitle,
+    this.searchLat,
+    this.searchLng,
+    this.searchTitle,
+    this.deviceLat,
+    this.deviceLng,
   });
 
   final bool showAll;
@@ -22,6 +28,13 @@ class GoogleMapsBody extends StatefulWidget {
   final double? singleLat;
   final double? singleLng;
   final String markerTitle;
+
+  /// Optional pin + camera target from open-ended map search (Open-Meteo geocoding).
+  final double? searchLat;
+  final double? searchLng;
+  final String? searchTitle;
+  final double? deviceLat;
+  final double? deviceLng;
 
   @override
   State<GoogleMapsBody> createState() => _GoogleMapsBodyState();
@@ -33,7 +46,13 @@ class _GoogleMapsBodyState extends State<GoogleMapsBody> {
   @override
   void didUpdateWidget(covariant GoogleMapsBody oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.places.length != widget.places.length || oldWidget.showAll != widget.showAll) {
+    final searchMoved =
+        oldWidget.searchLat != widget.searchLat ||
+        oldWidget.searchLng != widget.searchLng;
+    final pinsOrModeChanged =
+        oldWidget.places.length != widget.places.length ||
+        oldWidget.showAll != widget.showAll;
+    if (searchMoved || pinsOrModeChanged) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitMarkers());
     }
   }
@@ -49,10 +68,25 @@ class _GoogleMapsBodyState extends State<GoogleMapsBody> {
     final ctrl = _controller;
     if (!mounted || ctrl == null) return;
 
-    if (!widget.showAll && widget.singleLat != null && widget.singleLng != null) {
+    if (widget.searchLat != null && widget.searchLng != null) {
+      await ctrl.animateCamera(
+        gm.CameraUpdate.newLatLngZoom(
+          gm.LatLng(widget.searchLat!, widget.searchLng!),
+          13,
+        ),
+      );
+      return;
+    }
+
+    if (!widget.showAll &&
+        widget.singleLat != null &&
+        widget.singleLng != null) {
       await ctrl.animateCamera(
         gm.CameraUpdate.newCameraPosition(
-          gm.CameraPosition(target: gm.LatLng(widget.singleLat!, widget.singleLng!), zoom: 12),
+          gm.CameraPosition(
+            target: gm.LatLng(widget.singleLat!, widget.singleLng!),
+            zoom: 13,
+          ),
         ),
       );
       return;
@@ -60,7 +94,9 @@ class _GoogleMapsBodyState extends State<GoogleMapsBody> {
 
     final slice = widget.places.take(80).toList();
     if (slice.isEmpty) {
-      await ctrl.animateCamera(gm.CameraUpdate.newLatLngZoom(const gm.LatLng(12, 101), 3));
+      await ctrl.animateCamera(
+        gm.CameraUpdate.newLatLngZoom(const gm.LatLng(12, 101), 3),
+      );
       return;
     }
     if (slice.length == 1) {
@@ -79,7 +115,9 @@ class _GoogleMapsBodyState extends State<GoogleMapsBody> {
     }
 
     if ((maxLat - minLat) < 1e-6 && (maxLng - minLng) < 1e-6) {
-      await ctrl.animateCamera(gm.CameraUpdate.newLatLngZoom(gm.LatLng(minLat, minLng), 9));
+      await ctrl.animateCamera(
+        gm.CameraUpdate.newLatLngZoom(gm.LatLng(minLat, minLng), 9),
+      );
       return;
     }
 
@@ -100,10 +138,24 @@ class _GoogleMapsBodyState extends State<GoogleMapsBody> {
   }
 
   gm.CameraPosition _initialCamera() {
-    if (!widget.showAll && widget.singleLat != null && widget.singleLng != null) {
-      return gm.CameraPosition(target: gm.LatLng(widget.singleLat!, widget.singleLng!), zoom: 12);
+    if (widget.searchLat != null && widget.searchLng != null) {
+      return gm.CameraPosition(
+        target: gm.LatLng(widget.searchLat!, widget.searchLng!),
+        zoom: 13,
+      );
     }
-    final slice = widget.places.take(math.min(widget.places.length, 80)).toList();
+
+    if (!widget.showAll &&
+        widget.singleLat != null &&
+        widget.singleLng != null) {
+      return gm.CameraPosition(
+        target: gm.LatLng(widget.singleLat!, widget.singleLng!),
+        zoom: 13,
+      );
+    }
+    final slice = widget.places
+        .take(math.min(widget.places.length, 80))
+        .toList();
     if (slice.isEmpty) {
       return const gm.CameraPosition(target: gm.LatLng(12, 101), zoom: 3);
     }
@@ -114,21 +166,43 @@ class _GoogleMapsBodyState extends State<GoogleMapsBody> {
       ln += pt.longitude;
     }
     final n = slice.length.toDouble();
-    return gm.CameraPosition(target: gm.LatLng(la / n, ln / n), zoom: widget.showAll ? 3 : 5);
+    return gm.CameraPosition(
+      target: gm.LatLng(la / n, ln / n),
+      zoom: widget.showAll ? 3 : 5,
+    );
   }
 
   Set<gm.Marker> _markers() {
-    if (!widget.showAll && widget.singleLat != null && widget.singleLng != null) {
-      return {
+    final out = <gm.Marker>{};
+
+    if (widget.searchLat != null && widget.searchLng != null) {
+      out.add(
+        gm.Marker(
+          markerId: const gm.MarkerId('search'),
+          position: gm.LatLng(widget.searchLat!, widget.searchLng!),
+          icon: gm.BitmapDescriptor.defaultMarkerWithHue(
+            gm.BitmapDescriptor.hueOrange,
+          ),
+          infoWindow: gm.InfoWindow(
+            title: widget.searchTitle ?? 'Search result',
+          ),
+        ),
+      );
+    }
+
+    if (!widget.showAll &&
+        widget.singleLat != null &&
+        widget.singleLng != null) {
+      out.add(
         gm.Marker(
           markerId: const gm.MarkerId('target'),
           position: gm.LatLng(widget.singleLat!, widget.singleLng!),
           infoWindow: gm.InfoWindow(title: widget.markerTitle),
         ),
-      };
+      );
+      return out;
     }
 
-    final out = <gm.Marker>{};
     for (final place in widget.places.take(80)) {
       final llPt = latLngForPlaceId(place.id);
       out.add(
@@ -142,11 +216,41 @@ class _GoogleMapsBodyState extends State<GoogleMapsBody> {
     return out;
   }
 
+  Set<gm.Polyline> _polylines() {
+    final lat = widget.deviceLat;
+    final lng = widget.deviceLng;
+    final dest = _routeDestination();
+    if (lat == null || lng == null || dest == null) return {};
+    return {
+      gm.Polyline(
+        polylineId: const gm.PolylineId('crow'),
+        color: AppColors.primary,
+        width: 4,
+        points: [gm.LatLng(lat, lng), dest],
+      ),
+    };
+  }
+
+  gm.LatLng? _routeDestination() {
+    if (widget.searchLat != null && widget.searchLng != null) {
+      return gm.LatLng(widget.searchLat!, widget.searchLng!);
+    }
+    if (!widget.showAll &&
+        widget.singleLat != null &&
+        widget.singleLng != null) {
+      return gm.LatLng(widget.singleLat!, widget.singleLng!);
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return gm.GoogleMap(
       initialCameraPosition: _initialCamera(),
       markers: _markers(),
+      polylines: _polylines(),
+      myLocationEnabled: true,
+      myLocationButtonEnabled: true,
       onMapCreated: _onMapCreated,
       compassEnabled: true,
       zoomControlsEnabled: true,

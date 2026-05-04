@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../domain/entities/place_entity.dart';
+import '../router/app_route_paths.dart';
 import '../../presentation/ui/detail/detail_screen.dart';
+import '../../presentation/ui/explore/world_place_preview_screen.dart';
 import '../../presentation/ui/favorites/favorites_screen.dart';
 import '../../presentation/ui/home/home_screen.dart';
 import '../../presentation/ui/landing/landing_screen.dart';
 import '../../presentation/ui/map/map_screen.dart';
+import '../../presentation/ui/pages/about_screen.dart';
+import '../../presentation/ui/pages/downloaded_catalog_screen.dart';
+import '../../presentation/ui/pages/help_support_screen.dart';
+import '../../presentation/ui/pages/settings_screen.dart';
+import '../../presentation/ui/pages/route_error_screen.dart';
 import '../../presentation/ui/pages/simple_page.dart';
 import '../../presentation/ui/profile/profile_screen.dart';
 import '../../presentation/ui/shell/main_shell.dart';
 
-final GlobalKey<NavigatorState> rootNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'root');
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'root',
+);
 
 GoRouter buildRouter() {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: LandingScreen.routePath,
+    errorBuilder: (context, state) => RouteErrorScreen(state: state),
     routes: [
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
@@ -31,7 +41,7 @@ GoRouter buildRouter() {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/home',
+                path: AppRoutePaths.home,
                 name: 'home',
                 builder: (context, state) => const HomeScreen(),
               ),
@@ -40,7 +50,7 @@ GoRouter buildRouter() {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/map',
+                path: AppRoutePaths.map,
                 name: 'map',
                 builder: (context, state) => const MapScreen(showAll: true),
               ),
@@ -49,7 +59,7 @@ GoRouter buildRouter() {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/favorites',
+                path: AppRoutePaths.favorites,
                 name: 'favorites',
                 builder: (context, state) => const FavoritesScreen(),
               ),
@@ -58,7 +68,7 @@ GoRouter buildRouter() {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/profile',
+                path: AppRoutePaths.profile,
                 name: 'profile',
                 builder: (context, state) => const ProfileScreen(),
               ),
@@ -68,52 +78,65 @@ GoRouter buildRouter() {
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
+        path: AppRoutePaths.worldPlace,
+        name: 'world-place',
+        builder: (context, state) {
+          final qp = state.uri.queryParameters;
+          final lat = double.tryParse(qp['lat'] ?? '');
+          final lng = double.tryParse(qp['lng'] ?? '');
+          final title = qp['title'] ?? 'Place';
+          final subtitle = qp['subtitle'] ?? '';
+          final sid = int.tryParse(qp['sid'] ?? '0') ?? 0;
+          if (lat == null || lng == null) {
+            return const SimplePage(
+              title: 'Place unavailable',
+              subtitle: 'Missing coordinates for this preview.',
+            );
+          }
+          return WorldPlacePreviewScreen(
+            latitude: lat,
+            longitude: lng,
+            title: title,
+            subtitle: subtitle,
+            geocodeSeedId: sid,
+          );
+        },
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
         path: '/place/:placeId',
         name: 'place-detail',
-        builder: (context, state) =>
-            DetailScreen(placeId: int.parse(state.pathParameters['placeId']!)),
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['placeId']!);
+          final raw = state.extra;
+          PlaceEntity? seed =
+              raw is PlaceEntity && raw.id == id ? raw : null;
+          return DetailScreen(placeId: id, initialPlace: seed);
+        },
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
-        path: '/downloads',
-        builder: (_, __) => const SimplePage(
-          title: 'Downloaded',
-          subtitle: 'Offline-ready favorites live in SQLite. Star places on Wi-Fi '
-              'and revisit them anytime from Favorites—even when you are disconnected.',
-        ),
+        path: AppRoutePaths.downloads,
+        builder: (context, state) => const DownloadedCatalogScreen(),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
-        path: '/settings',
-        builder: (_, __) => const SimplePage(
-          title: 'Settings',
-          subtitle: 'Flip Dark Mode instantly from the drawer. Pull-to-refresh on Explore merges '
-              'fresh JSONPlaceholder photos into SQLite for offline previews. Map tab uses Google Maps when keys '
-              '(and platform) permit, otherwise OpenStreetMap.',
-        ),
+        path: AppRoutePaths.settings,
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
-        path: '/help',
-        builder: (_, __) => const SimplePage(
-          title: 'Help & Support',
-          subtitle: 'Document how Hero flights, AnimatedList inserts, AnimatedSize about sections, '
-              'Open-Meteo loaders, offline retry panels, Google Maps (+ OSM fallback), notifications, and pagination hit the PDF rubric.',
-        ),
+        path: AppRoutePaths.help,
+        builder: (context, state) => const HelpSupportScreen(),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
-        path: '/about',
-        builder: (_, __) => const SimplePage(
-          title: 'About Smart Travel Companion',
-          subtitle: 'Demonstrates Provider + layered clean architecture atop SQLite caches, curated UI from '
-              '`assignment_ui.png`, JSONPlaceholder photos, Open-Meteo forecasts, Google Maps Platform (bonus) with '
-              'OpenStreetMap fallback where the native Maps SDK does not apply.',
-        ),
+        path: AppRoutePaths.about,
+        builder: (context, state) => const AboutScreen(),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
-        path: '/map/target',
+        path: AppRoutePaths.mapTarget,
         name: 'map-target',
         builder: (context, state) {
           final qp = state.uri.queryParameters;
@@ -121,7 +144,10 @@ GoRouter buildRouter() {
           final lng = double.tryParse(qp['lng'] ?? '');
           final title = qp['title'] ?? 'Pinned place';
           if (lat == null || lng == null) {
-            return const SimplePage(title: 'Map unavailable', subtitle: 'Missing coordinates.');
+            return const SimplePage(
+              title: 'Map unavailable',
+              subtitle: 'Missing coordinates.',
+            );
           }
           return MapScreen(
             latitude: lat,

@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/router/app_route_paths.dart';
 
 /// Welcome / landing — tweak spacing & copy against your Figma reference.
 /// Figma ref: Smart Travel Companion (Make file).
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
 
-  static const routePath = '/landing';
+  static const routePath = AppRoutePaths.landing;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +19,9 @@ class LandingScreen extends StatelessWidget {
     final bottomBg = isDark ? AppColors.darkSurface : Colors.white;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
       body: Stack(
         children: [
           Column(
@@ -28,7 +31,11 @@ class LandingScreen extends StatelessWidget {
                 child: DecoratedBox(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF5B52F5), Color(0xFF8B84FF), Color(0xFFABA4FF)],
+                      colors: [
+                        Color(0xFF5B52F5),
+                        Color(0xFF8B84FF),
+                        Color(0xFFABA4FF),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -41,14 +48,20 @@ class LandingScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           IconButton.filled(
-                            style: IconButton.styleFrom(backgroundColor: Colors.white24),
-                            onPressed: () => context.go('/home'),
-                            icon: const Icon(Icons.close_rounded, color: Colors.white),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white24,
+                            ),
+                            onPressed: () => context.go(AppRoutePaths.home),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Smart Travel Companion',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                   height: 1.15,
@@ -58,7 +71,8 @@ class LandingScreen extends StatelessWidget {
                           Text(
                             'Explore curated places, live weather,\nand maps — built for travellers who '
                             'love a polished, modern companion.',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
                                   color: Colors.white.withValues(alpha: .92),
                                   height: 1.45,
                                 ),
@@ -74,7 +88,9 @@ class LandingScreen extends StatelessWidget {
               Expanded(
                 flex: 11,
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
                   child: DecoratedBox(
                     decoration: BoxDecoration(color: bottomBg),
                     child: SingleChildScrollView(
@@ -90,28 +106,34 @@ class LandingScreen extends StatelessWidget {
                           Text(
                             'Everything in one trip',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A),
                                 ),
                           ),
                           const SizedBox(height: 22),
                           _FeatureTile(
                             icon: Icons.photo_library_outlined,
                             title: 'Places from JSONPlaceholder',
-                            subtitle: 'Curated titles & imagery synced to SQLite for smooth Explore.',
+                            subtitle:
+                                'Curated titles & imagery synced to SQLite for smooth Explore.',
                           ),
                           const SizedBox(height: 14),
                           _FeatureTile(
                             icon: Icons.wb_sunny_outlined,
                             title: 'Open-Meteo weather',
-                            subtitle: 'Live-feel forecasts on each detail screen.',
+                            subtitle:
+                                'Live-feel forecasts on each detail screen.',
                           ),
                           const SizedBox(height: 14),
                           _FeatureTile(
                             icon: Icons.map_outlined,
                             title: 'Maps where supported',
-                            subtitle: 'Google Maps on mobile & web with keys · OSM elsewhere.',
+                            subtitle:
+                                'Google Maps on mobile & web with keys · OSM elsewhere.',
                           ),
                         ],
                       ),
@@ -134,19 +156,21 @@ class LandingScreen extends StatelessWidget {
                     foregroundColor: Colors.white,
                     elevation: 2,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
                   ),
-                  onPressed: () => context.go('/home'),
+                  onPressed: () => context.go(AppRoutePaths.home),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         'Explore places',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: 0.3,
-                            ),
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.3,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Icon(Icons.arrow_forward_rounded, size: 20),
@@ -154,7 +178,7 @@ class LandingScreen extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => context.go('/home'),
+                  onPressed: () => context.go(AppRoutePaths.home),
                   child: Text(
                     'Skip introduction',
                     style: TextStyle(
@@ -185,7 +209,10 @@ class _HeroCollage extends StatelessWidget {
             alignment: Alignment.center,
             child: Transform.rotate(
               angle: -0.09,
-              child: _FakeCard(width: 168, hue: Colors.white.withValues(alpha: .18)),
+              child: _FakeCard(
+                width: 168,
+                hue: Colors.white.withValues(alpha: .18),
+              ),
             ),
           ),
         ),
@@ -194,7 +221,10 @@ class _HeroCollage extends StatelessWidget {
             alignment: const Alignment(0.2, -0.2),
             child: Transform.rotate(
               angle: 0.1,
-              child: _FakeCard(width: 152, hue: Colors.white.withValues(alpha: .28)),
+              child: _FakeCard(
+                width: 152,
+                hue: Colors.white.withValues(alpha: .28),
+              ),
             ),
           ),
         ),
@@ -216,7 +246,11 @@ class _HeroCollage extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.flight_takeoff_rounded, size: 44, color: AppColors.primary),
+              child: const Icon(
+                Icons.flight_takeoff_rounded,
+                size: 44,
+                color: AppColors.primary,
+              ),
             ),
           ),
         ),
@@ -297,10 +331,14 @@ class _FeatureTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkBackground.withValues(alpha: .9) : const Color(0xFFF8FAFC),
+        color: isDark
+            ? AppColors.darkBackground.withValues(alpha: .9)
+            : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isDark ? Colors.white12 : AppColors.primary.withValues(alpha: .08),
+          color: isDark
+              ? Colors.white12
+              : AppColors.primary.withValues(alpha: .08),
         ),
       ),
       child: Row(
@@ -328,17 +366,17 @@ class _FeatureTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        height: 1.35,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
                 ),
               ],
             ),

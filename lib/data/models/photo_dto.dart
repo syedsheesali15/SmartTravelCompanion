@@ -13,6 +13,7 @@ class PhotoDto {
 
   final int id;
   final int albumId;
+
   /// Raw JSONPlaceholder title (Latin); not shown as main heading — we use curated travel names instead.
   final String title;
   final String url;
@@ -30,16 +31,17 @@ class PhotoDto {
     );
   }
 
-  PlaceEntity toEntity({
-    required bool isFavorite,
-    required int? lastViewedMs,
-  }) {
+  PlaceEntity toEntity({required bool isFavorite, required int? lastViewedMs}) {
     final loc = syntheticTravelSpot(albumId: albumId, photoId: id);
     final photos = curatedSpotPhotos(albumId: albumId, photoId: id);
-    final commaParts =
-        loc.titleLine.split(',').map((segment) => segment.trim()).where((s) => s.isNotEmpty).toList();
-    final displayTitle =
-        commaParts.isNotEmpty ? commaParts.first : 'Curated vista';
+    final commaParts = loc.titleLine
+        .split(',')
+        .map((segment) => segment.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final displayTitle = commaParts.isNotEmpty
+        ? commaParts.first
+        : 'Curated vista';
     final about =
         'Visit $displayTitle — anchored in ${loc.titleLine}. '
         'This gallery frame (#$id • album $albumId) showcases ${loc.regionBucket} palettes with dreamy lighting. '
@@ -56,6 +58,9 @@ class PhotoDto {
       regionBucket: loc.regionBucket,
       isFavorite: isFavorite,
       lastViewedMs: lastViewedMs,
+      worldLatitude: null,
+      worldLongitude: null,
+      worldGeocodeSeedId: 0,
     );
   }
 }

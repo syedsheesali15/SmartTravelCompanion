@@ -1,15 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/services/notification_service.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/router/app_navigation.dart';
+import '../../../data/datasources/geocoding_remote_datasource.dart';
+import '../../../domain/entities/geocode_place.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../domain/entities/place_query.dart';
 import '../../provider/connectivity_notifier.dart';
 import '../../provider/places_notifier.dart';
 import '../drawer/app_drawer.dart';
 import '../filters/filter_sheet.dart';
-import 'widgets/travel_place_tile.dart';
+import 'widgets/explore_places_animated_list.dart';
 
 /// Explore Places home — matches assignment kit (search row + pills + stacked cards).
 class HomeScreen extends StatefulWidget {
@@ -23,6 +28,11 @@ class _HomeScreenState extends State<HomeScreen> {
   late final TextEditingController _searchCtrl;
   int _lastUiRevision = -1;
 
+  Timer? _worldDebounce;
+  List<GeocodePlace> _worldHits = const [];
+  bool _worldLoading = false;
+  String? _worldError;
+
   @override
   void initState() {
     super.initState();
@@ -31,8 +41,49 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _worldDebounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _onWorldSearch(String raw) {
+    _worldDebounce?.cancel();
+    final q = raw.trim();
+    if (q.length < 2) {
+      if (mounted) {
+        setState(() {
+          _worldHits = const [];
+          _worldLoading = false;
+          _worldError = null;
+        });
+      }
+      return;
+    }
+    _worldDebounce = Timer(const Duration(milliseconds: 480), () async {
+      if (!mounted) return;
+      setState(() {
+        _worldLoading = true;
+        _worldError = null;
+      });
+      try {
+        final hits = await context
+            .read<GeocodingRemoteDataSource>()
+            .searchByName(q);
+        if (!mounted) return;
+        setState(() {
+          _worldHits = hits;
+          _worldLoading = false;
+          _worldError = null;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _worldHits = const [];
+          _worldLoading = false;
+          _worldError = 'Could not search places: $e';
+        });
+      }
+    });
   }
 
   bool _onScroll(ScrollNotification notification) {
@@ -58,18 +109,26 @@ class _HomeScreenState extends State<HomeScreen> {
   InputDecoration _searchDecoration(BuildContext context) {
     final light = Theme.of(context).brightness == Brightness.light;
     final hintClr = light ? const Color(0xFF94A3B8) : null;
-    final prefixClr = light ? const Color(0xFF64748B) : AppColors.primary.withValues(alpha: .75);
+    final prefixClr = light
+        ? const Color(0xFF64748B)
+        : AppColors.primary.withValues(alpha: .75);
 
     if (light) {
       return InputDecoration(
-        hintText: 'Search places...',
+        hintText: 'Search places or any city worldwide…',
         hintStyle: TextStyle(color: hintClr, fontWeight: FontWeight.w400),
         prefixIcon: Icon(Icons.search_rounded, color: prefixClr),
         filled: true,
         fillColor: const Color(0xFFF1F5F9),
         contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide.none,
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
@@ -78,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return InputDecoration(
-      hintText: 'Search places...',
+      hintText: 'Search places or any city worldwide…',
       hintStyle: TextStyle(color: hintClr),
       prefixIcon: Icon(Icons.search_rounded, color: prefixClr),
       filled: true,
@@ -107,7 +166,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Material(
       color: bg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: border)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: border),
+      ),
       elevation: light ? 0 : 2,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -165,14 +227,16 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(24),
               border: selected
                   ? null
-                  : Border.all(color: light ? const Color(0xFFE2E8F0) : Colors.white24),
+                  : Border.all(
+                      color: light ? const Color(0xFFE2E8F0) : Colors.white24,
+                    ),
             ),
             child: Text(
               label,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: fg,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: fg,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
@@ -195,23 +259,32 @@ class _HomeScreenState extends State<HomeScreen> {
         if (_searchCtrl.text != t) {
           _searchCtrl.value = TextEditingValue(
             text: t,
-            selection: TextSelection.collapsed(offset: t.length.clamp(0, t.length)),
+            selection: TextSelection.collapsed(
+              offset: t.length.clamp(0, t.length),
+            ),
           );
         }
       });
     }
 
-    final appBarFg = light ? const Color(0xFF0F172A) : Theme.of(context).colorScheme.onSurface;
+    final appBarFg = light
+        ? const Color(0xFF0F172A)
+        : Theme.of(context).colorScheme.onSurface;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: light
-          ? SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent)
+          ? SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+            )
           : SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: light ? Colors.white : AppColors.darkBackground,
+      child: ScaffoldMessenger(
+        child: Scaffold(
+          backgroundColor: light ? Colors.white : AppColors.darkBackground,
         drawer: const AppDrawer(),
         appBar: AppBar(
-          backgroundColor: light ? Colors.white : Theme.of(context).appBarTheme.backgroundColor,
+          backgroundColor: light
+              ? Colors.white
+              : Theme.of(context).appBarTheme.backgroundColor,
           elevation: 0,
           scrolledUnderElevation: 0,
           surfaceTintColor: Colors.transparent,
@@ -228,14 +301,15 @@ class _HomeScreenState extends State<HomeScreen> {
           title: Text(
             'Explore Places',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: appBarFg,
-                ),
+              fontWeight: FontWeight.w700,
+              color: appBarFg,
+            ),
           ),
           actions: [
             IconButton(
-              tooltip: 'Travel tip notification',
-              onPressed: NotificationService.instance.travelTipMorning,
+              tooltip: 'Travel tip',
+              onPressed: () =>
+                  NotificationService.instance.showTravelTipTopBanner(context),
               icon: const Icon(Icons.notifications_outlined),
             ),
             const SizedBox(width: 4),
@@ -254,7 +328,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.all(12),
                         child: Row(
                           children: [
-                            const Icon(Icons.wifi_off_rounded, color: AppColors.primary),
+                            const Icon(
+                              Icons.wifi_off_rounded,
+                              color: AppColors.primary,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -267,7 +344,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
                               ),
-                              onPressed: () => context.read<PlacesNotifier>().bootstrap(),
+                              onPressed: () =>
+                                  context.read<PlacesNotifier>().bootstrap(),
                               child: const Text('Retry'),
                             ),
                           ],
@@ -286,7 +364,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.cloud_off_rounded, color: AppColors.accentHeart),
+                      const Icon(
+                        Icons.cloud_off_rounded,
+                        color: AppColors.accentHeart,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -312,11 +393,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       controller: _searchCtrl,
                       textInputAction: TextInputAction.search,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w400,
-                            color: light ? const Color(0xFF0F172A) : null,
-                          ),
+                        fontWeight: FontWeight.w400,
+                        color: light ? const Color(0xFF0F172A) : null,
+                      ),
                       decoration: _searchDecoration(context),
-                      onChanged: notifier.applyDraftSearch,
+                      onChanged: (v) {
+                        notifier.applyDraftSearch(v);
+                        _onWorldSearch(v);
+                      },
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -352,82 +436,233 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            Expanded(child: _buildExplorer(context, notifier, offline)),
+            if (_worldLoading || _worldHits.isNotEmpty || _worldError != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Search anywhere',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (_worldLoading)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 6),
+                        child: LinearProgressIndicator(minHeight: 2),
+                      ),
+                    if (_worldError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          _worldError!,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                        ),
+                      ),
+                    if (!_worldLoading &&
+                        _worldHits.isEmpty &&
+                        _worldError == null &&
+                        _searchCtrl.text.trim().length >= 2)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          offline
+                              ? 'Turn on network to search cities worldwide (uses Open-Meteo).'
+                              : 'No worldwide name match — try another spelling.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    if (_worldHits.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 46,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _worldHits.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final p = _worldHits[index];
+                            final label = p.country.isNotEmpty
+                                ? '${p.name} · ${p.country}'
+                                : p.name;
+                            return ActionChip(
+                              label: Text(
+                                label,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
+                              ),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              side: BorderSide(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
+                              ),
+                              onPressed: () =>
+                                  context.pushWorldPlaceFromGeocode(p),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            Expanded(
+              child: _buildExplorer(context, notifier, offline, _worldHits),
+            ),
           ],
         ),
+      ),
       ),
     );
   }
 
-  Widget _buildExplorer(BuildContext context, PlacesNotifier notifier, bool offlineBannerVisible) {
+  Widget _buildExplorer(
+    BuildContext context,
+    PlacesNotifier notifier,
+    bool offlineBannerVisible,
+    List<GeocodePlace> worldHits,
+  ) {
     if (notifier.initialBusy) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
     }
 
     if (notifier.places.isEmpty) {
       final hasTypedSearch = notifier.filters.search.trim().isNotEmpty;
+      final searchQuery = notifier.filters.search.trim();
+      final hasWorld = worldHits.isNotEmpty;
+      final showBigEmptyIllustration = !hasTypedSearch || !hasWorld;
+
       return RefreshIndicator(
         color: AppColors.primary,
         onRefresh: notifier.refreshPull,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            if (hasTypedSearch) ...[
+            if (hasTypedSearch && hasWorld) ...[
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    Text(
+                      'No matches in your saved catalog',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'There are no downloaded places matching “$searchQuery”. '
+                      'Use the “Search anywhere” chips above this list to pick a city worldwide — '
+                      'each opens a preview with weather, a sample photo, and a button to the map.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF64748B),
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: notifier.resetFilters,
+                      child: const Text('Clear search & filters'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (hasTypedSearch && !hasWorld) ...[
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Text(
-                  'Nothing matched that search yet — relax filters or try another spelling.',
+                  offlineBannerVisible
+                      ? 'You’re offline — can’t search worldwide. Try again when connected, or relax filters for cached places.'
+                      : 'Nothing matched in your offline catalog. Try another spelling, pull to refresh, or clear filters.',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B)),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF64748B),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
             ],
-            const SizedBox(height: 72),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: .13),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.manage_search_rounded,
-                  size: 72,
-                  color: AppColors.primary.withValues(alpha: .94),
+            if (showBigEmptyIllustration) ...[
+              const SizedBox(height: 72),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: .13),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.manage_search_rounded,
+                    size: 72,
+                    color: AppColors.primary.withValues(alpha: .94),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'No places found',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 34),
-              child: Text(
-                'Relax filters or try another spelling. Kyoto, Santorini, Paris, Morocco, Bali—and “Lake Tekapo”—'
-                'unlock once the catalog finishes syncing.',
+              const SizedBox(height: 20),
+              Text(
+                'No places found',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 18),
-            Center(
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(200, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 34),
+                child: Text(
+                  hasTypedSearch && !hasWorld
+                      ? 'Pull down to refresh the catalog, or adjust filters and spelling.'
+                      : 'Relax filters or try another spelling. Kyoto, Santorini, Paris, Morocco, Bali—and “Lake Tekapo”—'
+                            'unlock once the catalog finishes syncing.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                onPressed: notifier.resetFilters,
-                child: const Text('Clear filters'),
               ),
-            ),
-            if (!offlineBannerVisible && notifier.filters.search.trim().length >= 2)
+              const SizedBox(height: 18),
+              Center(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(200, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                  ),
+                  onPressed: notifier.resetFilters,
+                  child: const Text('Clear filters'),
+                ),
+              ),
+            ],
+            if (!offlineBannerVisible &&
+                notifier.filters.search.trim().length >= 2 &&
+                showBigEmptyIllustration)
               Padding(
                 padding: const EdgeInsets.only(top: 96),
                 child: Center(
@@ -444,7 +679,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final listSalt =
-        '${notifier.refreshCounter}-${notifier.filters.chip}-${notifier.filters.search}-${notifier.filters.region}-${notifier.filters.sort}-${notifier.filters.showFavoritesOnly}-${notifier.places.length}';
+        '${notifier.refreshCounter}-${notifier.filters.chip}-${notifier.filters.search}-${notifier.filters.region}-${notifier.filters.sort}-${notifier.filters.showFavoritesOnly}';
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -454,18 +689,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
-            ListView.builder(
+            KeyedSubtree(
               key: ValueKey(listSalt),
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 124),
-              itemCount: notifier.places.length,
-              itemBuilder: (context, index) {
-                final place = notifier.places[index];
-                return TravelPlaceTile(
-                  place: place,
-                  animation: const AlwaysStoppedAnimation<double>(1),
-                  onFavorite: () => notifier.toggleFavorite(place),
-                );
-              },
+              child: ExplorePlacesAnimatedList(notifier: notifier),
             ),
             if (notifier.pageBusy)
               Padding(
@@ -475,12 +701,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   opacity: notifier.pageBusy ? 1 : 0,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface.withValues(alpha: .94),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: .94),
                       borderRadius: BorderRadius.circular(22),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(
-                            alpha: Theme.of(context).brightness == Brightness.dark ? .42 : .08,
+                            alpha:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? .42
+                                : .08,
                           ),
                           blurRadius: 18,
                           offset: const Offset(0, 8),
@@ -491,7 +722,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: EdgeInsets.all(14),
                       child: SizedBox.square(
                         dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ),

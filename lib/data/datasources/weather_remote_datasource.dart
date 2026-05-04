@@ -6,7 +6,8 @@ import '../../core/constants/api_constants.dart';
 import '../../domain/entities/weather_entity.dart';
 
 class WeatherRemoteDataSource {
-  WeatherRemoteDataSource({http.Client? client}) : _client = client ?? http.Client();
+  WeatherRemoteDataSource({http.Client? client})
+    : _client = client ?? http.Client();
 
   final http.Client _client;
 

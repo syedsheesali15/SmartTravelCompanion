@@ -7,6 +7,7 @@ import 'core/maps/load_google_maps_script.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'data/datasources/geocoding_remote_datasource.dart';
 import 'data/datasources/local_place_datasource.dart';
 import 'data/datasources/remote_place_datasource.dart';
 import 'data/datasources/weather_remote_datasource.dart';
@@ -16,6 +17,7 @@ import 'domain/repositories/place_repository.dart';
 import 'domain/repositories/weather_repository.dart';
 import 'presentation/provider/connectivity_notifier.dart';
 import 'presentation/provider/places_notifier.dart';
+import 'presentation/provider/profile_notifier.dart';
 import 'presentation/provider/theme_notifier.dart';
 
 Future<void> main() async {
@@ -27,11 +29,15 @@ Future<void> main() async {
   final themeNotifier = ThemeNotifier();
   await themeNotifier.loadPrefs();
 
+  final profileNotifier = ProfileNotifier();
+  await profileNotifier.loadPrefs();
+
   final router = buildRouter();
 
   runApp(
     SmartTravelApp(
       themeNotifier: themeNotifier,
+      profileNotifier: profileNotifier,
       router: router,
     ),
   );
@@ -41,10 +47,12 @@ class SmartTravelApp extends StatefulWidget {
   const SmartTravelApp({
     super.key,
     required this.themeNotifier,
+    required this.profileNotifier,
     required this.router,
   });
 
   final ThemeNotifier themeNotifier;
+  final ProfileNotifier profileNotifier;
   final GoRouter router;
 
   @override
@@ -64,9 +72,13 @@ class _SmartTravelAppState extends State<SmartTravelApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<GeocodingRemoteDataSource>(
+          create: (_) => GeocodingRemoteDataSource(),
+        ),
         Provider<PlaceRepository>.value(value: _placeRepo),
         Provider<WeatherRepository>.value(value: _weatherRepo),
         ChangeNotifierProvider.value(value: widget.themeNotifier),
+        ChangeNotifierProvider.value(value: widget.profileNotifier),
         ChangeNotifierProvider(create: (_) => ConnectivityNotifier()),
         ChangeNotifierProvider(
           create: (ctx) => PlacesNotifier(

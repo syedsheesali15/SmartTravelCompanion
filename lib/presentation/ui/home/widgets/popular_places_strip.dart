@@ -1,8 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/router/app_navigation.dart';
 import '../../../../domain/entities/place_entity.dart';
 import 'travel_place_tile.dart';
 
@@ -30,9 +30,9 @@ class PopularPlacesStrip extends StatelessWidget {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: onSurface,
-                ),
+              fontWeight: FontWeight.w700,
+              color: onSurface,
+            ),
           ),
         ),
         SizedBox(
@@ -43,7 +43,10 @@ class PopularPlacesStrip extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final place = places[index];
-              return _PopularCard(place: place, onFavorite: () => onFavorite(place));
+              return _PopularCard(
+                place: place,
+                onFavorite: () => onFavorite(place),
+              );
             },
           ),
         ),
@@ -71,22 +74,29 @@ class _PopularCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => context.push('/place/${place.id}'),
+          onTap: () => context.pushPlaceDetail(place),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
                     child: SizedBox(
                       height: 116,
                       width: double.infinity,
-                      child: CachedNetworkImage(
-                        imageUrl: place.thumbnailUrl,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(color: Colors.grey.shade300),
-                        errorWidget: (_, __, ___) => Container(color: Colors.grey.shade400),
+                      child: Hero(
+                        tag: 'place-${place.id}',
+                        child: CachedNetworkImage(
+                          imageUrl: place.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) =>
+                              Container(color: Colors.grey.shade300),
+                          errorWidget: (_, __, ___) =>
+                              Container(color: Colors.grey.shade400),
+                        ),
                       ),
                     ),
                   ),
@@ -102,9 +112,13 @@ class _PopularCard extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.all(8),
                           child: Icon(
-                            place.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            place.isFavorite
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
                             size: 18,
-                            color: place.isFavorite ? AppColors.accentHeart : Colors.white,
+                            color: place.isFavorite
+                                ? AppColors.accentHeart
+                                : Colors.white,
                           ),
                         ),
                       ),
@@ -122,8 +136,8 @@ class _PopularCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -131,9 +145,9 @@ class _PopularCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),

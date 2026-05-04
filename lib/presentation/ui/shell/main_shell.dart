@@ -39,7 +39,9 @@ class MainShell extends StatelessWidget {
                   context: context,
                   isScrollControlled: true,
                   shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
                   ),
                   builder: (_) => const FilterSheet(),
                 );
@@ -77,25 +79,29 @@ class MainShell extends StatelessWidget {
                   _NavChip(
                     selected: navigationShell.currentIndex == 0,
                     icon: Icons.home_outlined,
+                    activeIcon: Icons.home_rounded,
                     label: 'Home',
                     onTap: () => _openBranch(0),
                   ),
                   _NavChip(
                     selected: navigationShell.currentIndex == 1,
                     icon: Icons.map_outlined,
+                    activeIcon: Icons.map_rounded,
                     label: 'Map',
                     onTap: () => _openBranch(1),
                   ),
                   const SizedBox(width: 72),
                   _NavChip(
                     selected: navigationShell.currentIndex == 2,
-                    icon: Icons.favorite_outline,
+                    icon: Icons.favorite_border_rounded,
+                    activeIcon: Icons.favorite_rounded,
                     label: 'Favorites',
                     onTap: () => _openBranch(2),
                   ),
                   _NavChip(
                     selected: navigationShell.currentIndex == 3,
-                    icon: Icons.person_outline,
+                    icon: Icons.person_outline_rounded,
+                    activeIcon: Icons.person_rounded,
                     label: 'Profile',
                     onTap: () => _openBranch(3),
                   ),
@@ -113,20 +119,24 @@ final class _NavChip extends StatelessWidget {
   const _NavChip({
     required this.selected,
     required this.icon,
+    required this.activeIcon,
     required this.label,
     required this.onTap,
   });
 
   final bool selected;
   final IconData icon;
+  final IconData activeIcon;
   final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    /// Kit: selected = purple accent; inactive = cool grey (#94A3B8).
+    /// Selected: filled icon + primary purple. Inactive: outlined + neutral slate.
     final active = AppColors.primary;
-    final inactive = const Color(0xFF94A3B8);
+    final inactive = Theme.of(context).brightness == Brightness.light
+        ? const Color(0xFF475569)
+        : Theme.of(context).colorScheme.onSurfaceVariant;
     final fg = selected ? active : inactive;
 
     return Expanded(
@@ -141,16 +151,16 @@ final class _NavChip extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 24, color: fg),
+                Icon(selected ? activeIcon : icon, size: 26, color: fg),
                 const SizedBox(height: 4),
                 Text(
                   label,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: fg,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                        fontSize: 11,
-                        letterSpacing: 0.1,
-                      ),
+                    color: fg,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: 11,
+                    letterSpacing: 0.1,
+                  ),
                 ),
               ],
             ),

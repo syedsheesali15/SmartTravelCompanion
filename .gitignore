@@ -1,4 +1,7 @@
 # Miscellaneous
+# JVM/Android Studio heap dumps (often >100MB — never commit)
+*.hprof
+
 *.class
 *.log
 *.pyc

@@ -8,5 +8,13 @@ abstract final class MapsSecrets {
     defaultValue: '',
   );
 
-  static bool get googleMapsDartDefineProvided => dartDefineGoogleMapsApiKey.isNotEmpty;
+  static bool get googleMapsDartDefineProvided =>
+      dartDefineGoogleMapsApiKey.isNotEmpty;
+
+  /// Native (Android/iOS): set `--dart-define=USE_GOOGLE_MAPS=true` **and** valid SDK keys
+  /// to use Google; otherwise OpenStreetMap is used so map tiles load without Google Cloud.
+  static const bool useGoogleMapsNative = bool.fromEnvironment(
+    'USE_GOOGLE_MAPS',
+    defaultValue: false,
+  );
 }

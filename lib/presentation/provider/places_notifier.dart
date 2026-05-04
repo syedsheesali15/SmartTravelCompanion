@@ -12,8 +12,8 @@ class PlacesNotifier extends ChangeNotifier {
   PlacesNotifier({
     required PlaceRepository repository,
     required ConnectivityNotifier connectivity,
-  })  : _repository = repository,
-        _connectivity = connectivity {
+  }) : _repository = repository,
+       _connectivity = connectivity {
     connectivity.addListener(_onConnectivityTick);
     unawaited(bootstrap());
   }
@@ -64,13 +64,19 @@ class PlacesNotifier extends ChangeNotifier {
     }
   }
 
-  Future<void> _silentPullChunks({required int pulls, Object? callerTag}) async {
+  Future<void> _silentPullChunks({
+    required int pulls,
+    Object? callerTag,
+  }) async {
     if (pulls <= 0) return;
     _silentPaging = true;
     notifyListeners();
     try {
       for (var i = 0; i < pulls; i++) {
-        await _repository.fetchRemotePage(start: _remoteNextStart, limit: pageSize);
+        await _repository.fetchRemotePage(
+          start: _remoteNextStart,
+          limit: pageSize,
+        );
         _remoteNextStart += pageSize;
       }
     } catch (e, st) {
@@ -97,6 +103,11 @@ class PlacesNotifier extends ChangeNotifier {
     notifyListeners();
 
     try {
+      try {
+        await _repository.migrateLegacyWorldFavoritesFromPrefs();
+      } catch (e, st) {
+        debugPrint('world favorites prefs migration skipped: $e $st');
+      }
       _places = await _repository.queryLocal(_filters);
       await _refreshPopularRails();
 
@@ -106,7 +117,7 @@ class PlacesNotifier extends ChangeNotifier {
         _remoteNextStart = pageSize;
         _places = await _repository.queryLocal(_filters);
         await _refreshPopularRails();
-        await _silentPullChunks(pulls: 6, callerTag: 'warm-start');
+        await _silentPullChunks(pulls: 11, callerTag: 'warm-start');
       } catch (e, st) {
         debugPrint('bootstrap remote hydrate $e $st');
         _lastError = e;
@@ -135,7 +146,10 @@ class PlacesNotifier extends ChangeNotifier {
     _pageBusy = true;
     notifyListeners();
     try {
-      await _repository.fetchRemotePage(start: _remoteNextStart, limit: pageSize);
+      await _repository.fetchRemotePage(
+        start: _remoteNextStart,
+        limit: pageSize,
+      );
       _remoteNextStart += pageSize;
       _places = await _repository.queryLocal(_filters);
       await _refreshPopularRails();
@@ -155,7 +169,10 @@ class PlacesNotifier extends ChangeNotifier {
     while (guard < 28 && (await _repository.queryLocal(_filters)).isEmpty) {
       guard++;
       try {
-        await _repository.fetchRemotePage(start: _remoteNextStart, limit: pageSize);
+        await _repository.fetchRemotePage(
+          start: _remoteNextStart,
+          limit: pageSize,
+        );
         _remoteNextStart += pageSize;
       } catch (_) {
         break;
@@ -215,8 +232,9 @@ class PlacesNotifier extends ChangeNotifier {
   }) async {
     _filters = PlaceQuery(
       chip: favoritesOnlyFromSheet ? HomeChip.favorites : _filters.chip,
-      search:
-          replaceSearchFromSheet && searchFromSheet != null ? searchFromSheet.trim() : _filters.search,
+      search: replaceSearchFromSheet && searchFromSheet != null
+          ? searchFromSheet.trim()
+          : _filters.search,
       sort: sort,
       region: region,
       showFavoritesOnly: favoritesOnlyFromSheet,
@@ -230,12 +248,28 @@ class PlacesNotifier extends ChangeNotifier {
 
   Future<void> toggleFavorite(PlaceEntity place) async {
     final next = !place.isFavorite;
-    await _repository.toggleFavorite(place.id, next);
+    if (place.isWorldPlaceEntry) {
+      await _repository.setWorldPlaceFavorite(
+        projection: place,
+        favorite: next,
+      );
+    } else {
+      await _repository.toggleFavorite(place.id, next);
+    }
     if (next) {
       await NotificationService.instance.favoriteAdded(place.title);
     }
     _places = await _repository.queryLocal(_filters);
     await _refreshPopularRails();
+    _refreshNonce++;
+    notifyListeners();
+  }
+
+  /// Re-query the current filters (e.g. after editing a coordinate-based favorite).
+  Future<void> refreshPlaces() async {
+    _places = await _repository.queryLocal(_filters);
+    await _refreshPopularRails();
+    _refreshNonce++;
     notifyListeners();
   }
 

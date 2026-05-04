@@ -36,13 +36,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   'Tap the heart icons on Explore to collect favorites—even offline!',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             )
           : AnimatedList(
-              key: ValueKey('fav-${favorites.length}-${notifier.refreshCounter}'),
+              key: ValueKey(
+                'fav-${favorites.length}-${notifier.refreshCounter}',
+              ),
               initialItemCount: favorites.length,
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
               itemBuilder: (context, index, animation) => TravelPlaceTile(

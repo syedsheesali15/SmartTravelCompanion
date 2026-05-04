@@ -77,12 +77,20 @@ Replace `REPLACE_WITH_GOOGLE_MAPS_IOS_API_KEY` in `ios/Runner/Info.plist` with y
 
 Presentation imports **domain**, not concrete `data` classes. Dependencies are wired in `lib/main.dart`.
 
+## Navigation (`GoRouter`)
+
+- **Routes & paths:** `lib/core/router/app_route_paths.dart` (shell tabs, drawer pages, map/world query builders).
+- **Navigation helpers:** `lib/core/router/app_navigation.dart` — e.g. `context.pushPlaceDetail(place)` passes **`PlaceEntity` as `extra`** (same-process object; no brittle JSON), so the detail hero can render immediately while SQLite refresh runs.
+- **Named routes:** shell uses `home`, `map`, `favorites`, `profile`; full-screen stacks use `world-place`, `place-detail`, `map-target`, plus landing and utility pages.
+- **Unknown URLs:** `GoRouter.errorBuilder` → `RouteErrorScreen` with recovery actions.
+
 ## Rubric mapping
 
 | Slice | Highlights |
 | --- | --- |
-| Animations | `AnimatedContainer`, `AnimatedOpacity`, `AnimatedList` (Explore + Favorites tab), `Hero` on imagery, `AnimatedSize` About section, `AnimatedSwitcher` for weather skeleton/success/error. |
+| Animations | `AnimatedContainer`, `AnimatedOpacity`, **`AnimatedList` on Explore** (`ExplorePlacesAnimatedList` + paging `insertItem`) and Favorites, `Hero` on imagery (including Popular strip → detail), `AnimatedSize` About section, `AnimatedSwitcher` for weather states. |
 | APIs | Photos: `jsonplaceholder.typicode.com` for catalog ids; **listing images** come from curated [Wikimedia Commons](https://commons.wikimedia.org/) shots matching each seeded destination (better on web than JSONPlaceholder `via.placeholder`). Weather: `api.open-meteo.com` |
+| State | **Provider** (`MultiProvider` in `main.dart`) with `PlacesNotifier`, `PlaceDetailNotifier`, etc. |
 | Offline / errors | Cached rows in SQLite, retry banner & empty states similar to mocks. |
 | Bonuses | Dark mode (persisted via `shared_preferences`), OpenStreetMap via `flutter_map`, `flutter_local_notifications` on favorite taps + toolbar bell tip, scroll pagination overlays. |
 

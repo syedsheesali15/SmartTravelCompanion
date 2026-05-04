@@ -59,7 +59,10 @@ class _FilterSheetState extends State<FilterSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Search & filter', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Search & filter',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             TextField(
               controller: _search,
               decoration: const InputDecoration(
@@ -72,12 +75,25 @@ class _FilterSheetState extends State<FilterSheet> {
               value: _sort,
               decoration: const InputDecoration(labelText: 'Sort by'),
               items: const [
-                DropdownMenuItem(value: PlaceSort.recommended, child: Text('Recommended')),
-                DropdownMenuItem(value: PlaceSort.titleAsc, child: Text('Title A → Z')),
-                DropdownMenuItem(value: PlaceSort.titleDesc, child: Text('Title Z → A')),
-                DropdownMenuItem(value: PlaceSort.idAsc, child: Text('Place id ascending')),
+                DropdownMenuItem(
+                  value: PlaceSort.recommended,
+                  child: Text('Recommended'),
+                ),
+                DropdownMenuItem(
+                  value: PlaceSort.titleAsc,
+                  child: Text('Title A → Z'),
+                ),
+                DropdownMenuItem(
+                  value: PlaceSort.titleDesc,
+                  child: Text('Title Z → A'),
+                ),
+                DropdownMenuItem(
+                  value: PlaceSort.idAsc,
+                  child: Text('Place id ascending'),
+                ),
               ],
-              onChanged: (v) => setState(() => _sort = v ?? PlaceSort.recommended),
+              onChanged: (v) =>
+                  setState(() => _sort = v ?? PlaceSort.recommended),
             ),
             const SizedBox(height: 12),
             Text('Show', style: Theme.of(context).textTheme.labelLarge),
@@ -102,10 +118,8 @@ class _FilterSheetState extends State<FilterSheet> {
               decoration: const InputDecoration(labelText: 'Region'),
               items: _regions
                   .map(
-                    (region) => DropdownMenuItem(
-                      value: region,
-                      child: Text(region),
-                    ),
+                    (region) =>
+                        DropdownMenuItem(value: region, child: Text(region)),
                   )
                   .toList(),
               onChanged: (value) => setState(() => _region = value ?? 'All'),

@@ -66,6 +66,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Smart Travel Companion uses your location to show how far saved places are from you.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose a profile photo from your library.</string>
 	<key>GoogleMapsIOSApiKey</key>
 	<string>REPLACE_WITH_GOOGLE_MAPS_IOS_API_KEY</string>
 </dict>

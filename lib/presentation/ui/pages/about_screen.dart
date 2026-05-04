@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/app_brand_icon.dart';
-
 /// Matches `pubspec.yaml` version for the store string.
 const _kAppVersion = '1.0.0+1';
 
@@ -19,8 +17,6 @@ class AboutScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const AppBrandIcon(size: 56, borderRadius: 14),
-          const SizedBox(height: 12),
           Text(
             'Smart Travel Companion',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(

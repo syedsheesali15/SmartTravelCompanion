@@ -10,7 +10,6 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/maps_secrets.dart';
 import '../../../../core/geo/english_place_description.dart';
-import '../../../../core/geo/haversine_km.dart';
 import '../../../../core/geo/obtain_best_position.dart';
 import '../../../../core/maps/maps_capabilities.dart';
 import '../../../../data/datasources/geocoding_remote_datasource.dart';
@@ -65,7 +64,6 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   double? _myLat;
   double? _myLng;
   bool _locatingSelf = false;
-  bool _locationDenied = false;
 
   /// Do not recreate this [Future] on every [setState] — [FutureBuilder] would
   /// return to `waiting`, swap in the loading scaffold, dispose the search field,
@@ -112,7 +110,6 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     setState(() {
       _locatingSelf = true;
-      _locationDenied = false;
     });
     try {
       var perm = await Geolocator.checkPermission();
@@ -123,7 +120,6 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
           perm == LocationPermission.deniedForever) {
         if (mounted) {
           setState(() {
-            _locationDenied = true;
             _locatingSelf = false;
           });
         }
@@ -144,16 +140,11 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
         _myLat = pos.latitude;
         _myLng = pos.longitude;
         _locatingSelf = false;
-        _locationDenied = false;
       });
     } catch (_) {
       if (mounted) setState(() => _locatingSelf = false);
     }
   }
-
-  /// When huge, GPS is often the Android / iOS simulator default (e.g. US) not the user’s city.
-  bool get _distanceLooksLikeWrongGps =>
-      _kmToTarget != null && _kmToTarget! > 3500;
 
   double? get _targetPinLat {
     if (_searchLat != null && _searchLng != null) return _searchLat;
@@ -173,14 +164,6 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       return widget.longitude;
     }
     return null;
-  }
-
-  double? get _kmToTarget {
-    if (kIsWeb || _myLat == null || _myLng == null) return null;
-    final tLat = _targetPinLat;
-    final tLng = _targetPinLng;
-    if (tLat == null || tLng == null) return null;
-    return haversineKm(_myLat!, _myLng!, tLat, tLng);
   }
 
   void _onQueryChanged(String raw) {
@@ -526,87 +509,6 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
                                   : null,
                             ),
                     ),
-                    if (pinLat != null && pinLng != null)
-                      Positioned(
-                        left: 10,
-                        right: 10,
-                        top: 8,
-                        child: Material(
-                          elevation: 2,
-                          borderRadius: BorderRadius.circular(12),
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHigh
-                              .withValues(alpha: 0.95),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.alt_route_rounded,
-                                  size: 20,
-                                  color: AppColors.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: kIsWeb
-                                      ? const Text(
-                                          'GPS distance & “my location” work on Android / iOS builds.',
-                                        )
-                                      : Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              _kmToTarget != null
-                                                  ? '~${_kmToTarget!.round()} km from you (straight line, as the crow flies)'
-                                                  : _locatingSelf
-                                                  ? 'Finding your GPS position…'
-                                                  : _locationDenied
-                                                  ? 'Allow location access to see distance from you.'
-                                                  : 'Tap the location icon in the app bar to refresh GPS.',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                            ),
-                                            if (_distanceLooksLikeWrongGps &&
-                                                _kmToTarget != null)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 6,
-                                                ),
-                                                child: Text(
-                                                  'This distance usually means your device is not using GPS near '
-                                                  'the pin (common on emulators: they default to the US). '
-                                                  'Android Emulator → ⋮ → Location → set a point near your place, '
-                                                  'or use a real phone with GPS on.',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.copyWith(
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .onSurfaceVariant,
-                                                        fontSize: 11.5,
-                                                        height: 1.35,
-                                                      ),
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
                     if (_weather != null || _spotlightPhoto != null)
                       Align(
                         alignment: Alignment.bottomCenter,

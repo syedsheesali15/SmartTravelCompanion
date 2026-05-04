@@ -13,8 +13,8 @@ const _kAvatarFile = 'stc_profile_avatar_file';
 const _kLegacyAvatarUrl = 'stc_profile_avatar_url';
 
 final class ProfileNotifier extends ChangeNotifier {
-  static const defaultName = 'Aarav Mehta';
-  static const defaultEmail = 'aarav.explorer@example.com';
+  static const defaultName = 'Syed Shees Ali';
+  static const defaultEmail = 'shees.explore@example.com';
 
   /// Built-in placeholder when the user has not chosen a gallery photo.
   static const defaultAvatarAsset = 'assets/images/profile_default_avatar.png';
